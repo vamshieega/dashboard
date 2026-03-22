@@ -4,7 +4,7 @@
   "description": "AWS Lambda GET API with TypeScript and Serverless Framework",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "node build.js",
     "start": "serverless offline",
     "dev": "nodemon",
     "deploy": "serverless deploy",
