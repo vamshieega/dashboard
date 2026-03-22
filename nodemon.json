@@ -1,0 +1,7 @@
+{
+  "watch": ["dashboard", "config", "resources", "serverless.yml"],
+  "ext": "ts,yml,yaml,json",
+  "ignore": [".build/**", "node_modules/**", ".serverless/**", "dist/**"],
+  "delay": 500,
+  "exec": "serverless offline"
+}

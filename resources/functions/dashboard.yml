@@ -1,0 +1,22 @@
+handler: dashboard/index.dashboard
+
+package:
+  individually: true
+
+events:
+  - httpApi:
+      method: GET
+      path: /dashboard
+      cors: true
+  - httpApi:
+      method: GET
+      path: /dashboard/users
+      cors: true
+  - httpApi:
+      method: POST
+      path: /dashboard/notes
+      cors: true
+  - httpApi:
+      method: GET
+      path: /dashboard/notes
+      cors: true

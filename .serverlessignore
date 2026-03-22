@@ -1,0 +1,24 @@
+# Source files
+src/**
+*.ts
+*.tsx
+*.map
+
+# Development files
+.vscode/**
+.idea/**
+*.log
+.DS_Store
+
+# Dependencies (will be handled by excludeDevDependencies)
+node_modules/**
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+
+# Config files
+tsconfig.json
+.gitignore
+README.md
+.env
