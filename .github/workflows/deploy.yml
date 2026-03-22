@@ -19,15 +19,24 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Zip files
+      - name: Zip files (ONLY dist)
         run: |
-          zip -r app.zip dist node_modules package.json
+          zip -r app.zip dist
 
-      - name: Deploy to Lambda
+      - name: Upload to S3
+        run: |
+          aws s3 cp app.zip s3://dashboard-zip/app.zip
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to Lambda from S3
         uses: appleboy/lambda-action@v0.1.5
         with:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws_region: ${{ secrets.AWS_REGION }}
-          function_name: us-east-1
-          zip_file: app.zip
+          function_name: dashboard   # ⚠️ your Lambda name
+          s3_bucket: dashboard-zip   # ⚠️ your bucket name
+          s3_key: app.zip
