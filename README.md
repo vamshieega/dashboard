@@ -22,6 +22,10 @@ A simple AWS Lambda GET API built with TypeScript and the Serverless Framework.
 - AWS CLI configured with credentials
 - Serverless Framework CLI
 
+## GitHub authentication (`git push`)
+
+GitHub requires a **Personal Access Token** for HTTPS pushes (account passwords are rejected). Step-by-step checklist: **[docs/github-login.md](./docs/github-login.md)**.
+
 ## Installation
 
 1. Install dependencies:
