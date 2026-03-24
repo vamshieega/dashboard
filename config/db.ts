@@ -70,5 +70,8 @@ import { getConnection } from "./mysql";
 
 /** Ensures Aurora MySQL connection (reused across Lambda invocations). */
 export const connectDB = async () => {
-  await getConnection();
+   const conn = await getConnection();
+   await conn.execute(`CREATE DATABASE IF NOT EXISTS myapp`);
+   await conn.execute(`USE myapp`);
+   return conn;
 };

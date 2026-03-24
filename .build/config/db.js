@@ -57,7 +57,10 @@ exports.connectDB = void 0;
 const mysql_1 = require("./mysql");
 /** Ensures Aurora MySQL connection (reused across Lambda invocations). */
 const connectDB = async () => {
-    await (0, mysql_1.getConnection)();
+    const conn = await (0, mysql_1.getConnection)();
+    await conn.execute(`CREATE DATABASE IF NOT EXISTS myapp`);
+    await conn.execute(`USE myapp`);
+    return conn;
 };
 exports.connectDB = connectDB;
 //# sourceMappingURL=db.js.map
