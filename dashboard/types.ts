@@ -36,9 +36,24 @@ export type CreateNotePayload = {
   gifUrl?: string;
 };
 
-/** Lean note document from the database (for mapping to API). */
+/** Aurora MySQL row shape (snake_case columns). */
+export type NoteRow = {
+  id: number;
+  title: string | null;
+  description: string | null;
+  type: string | null;
+  to_driver_ids: unknown;
+  cc_emails: unknown;
+  subject: string | null;
+  message: string | null;
+  gif_url: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+/** Lean note document from MongoDB (legacy; for mapping to API). */
 export type NoteLean = {
-  _id: unknown;
+  _id?: unknown;
   title?: string | null;
   description?: string | null;
   type?: string | null;

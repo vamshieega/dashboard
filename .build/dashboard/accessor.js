@@ -1,57 +1,51 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+// import mongoose, { Schema } from "mongoose";
+// import type { CreateNotePayload } from "./types";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.insertNote = insertNote;
 exports.findAllNotesSorted = findAllNotesSorted;
-const mongoose_1 = __importStar(require("mongoose"));
-const noteSchema = new mongoose_1.Schema({
-    title: { type: String },
-    description: { type: String },
-    type: { type: String },
-    toDriverIds: { type: [mongoose_1.Schema.Types.Mixed], default: [] },
-    ccEmails: { type: [mongoose_1.Schema.Types.Mixed], default: [] },
-    subject: { type: String },
-    message: { type: String },
-    gifUrl: { type: String },
-}, { timestamps: true });
-const Note = mongoose_1.default.models.Note ||
-    mongoose_1.default.model("Note", noteSchema);
+const mysql_1 = require("../config/mysql");
 async function insertNote(payload) {
-    return Note.create(payload);
+    const conn = await (0, mysql_1.getConnection)();
+    const toDriverJson = JSON.stringify(payload.toDriverIds ?? []);
+    const ccJson = JSON.stringify(payload.ccEmails ?? []);
+    try {
+        const [result] = await conn.execute(`INSERT INTO notes (
+        title, description, type, to_driver_ids, cc_emails, subject, message, gif_url
+      ) VALUES (?, ?, ?, CAST(? AS JSON), CAST(? AS JSON), ?, ?, ?)`, [
+            payload.title ?? null,
+            payload.description ?? null,
+            payload.type ?? null,
+            toDriverJson,
+            ccJson,
+            payload.subject ?? null,
+            payload.message ?? null,
+            payload.gifUrl ?? null,
+        ]);
+        const insertId = result.insertId;
+        const [rows] = await conn.execute(`SELECT id, title, description, type, to_driver_ids, cc_emails, subject, message, gif_url, created_at, updated_at
+       FROM notes WHERE id = ?`, [insertId]);
+        const row = rows[0];
+        if (!row) {
+            throw new Error("Insert succeeded but row not found");
+        }
+        return row;
+    }
+    catch (err) {
+        console.error("insertNote:", err);
+        throw err;
+    }
 }
 async function findAllNotesSorted() {
-    return Note.find().sort({ createdAt: -1 }).lean().exec();
+    const conn = await (0, mysql_1.getConnection)();
+    try {
+        const [rows] = await conn.execute(`SELECT id, title, description, type, to_driver_ids, cc_emails, subject, message, gif_url, created_at, updated_at
+       FROM notes ORDER BY created_at DESC`);
+        return rows;
+    }
+    catch (err) {
+        console.error("findAllNotesSorted:", err);
+        throw err;
+    }
 }
 //# sourceMappingURL=accessor.js.map

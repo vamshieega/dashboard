@@ -14,6 +14,17 @@
 //   return getDashboard({}, {});
 // };
 
+import dotenv from "dotenv";
+import path from "path";
+
+// Load .env before any route/controller code runs (serverless-offline / local).
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
+// TODO: remove after verifying env loading in local dev
+console.log(
+  "DB_HOST:",
+  process.env.Aurora_DB_HOST || process.env.DB_HOST
+);
 
 import express from "express";
 import serverless from "serverless-http";

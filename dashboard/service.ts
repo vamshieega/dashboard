@@ -6,6 +6,7 @@ import type {
   DriverRecipient,
   NoteLean,
   NoteResponse,
+  NoteRow,
 } from "./types";
 
 export const getDashboardData = async () => {
@@ -82,16 +83,30 @@ function ccRecipientFromStored(item: unknown): CcRecipient {
   return { id: "", email: "", name: "" };
 }
 
+function parseJsonArrayField(raw: unknown): unknown[] {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 function mapStoredToDriverRecipients(stored: unknown): DriverRecipient[] {
-  if (!Array.isArray(stored)) return [];
-  return stored
+  const arr = parseJsonArrayField(stored);
+  return arr
     .map(driverRecipientFromStored)
     .filter((d) => d.driverId || d.email || d.name);
 }
 
 function mapStoredToCcRecipients(stored: unknown): CcRecipient[] {
-  if (!Array.isArray(stored)) return [];
-  return stored.map(ccRecipientFromStored).filter((c) => c.id || c.email || c.name);
+  const arr = parseJsonArrayField(stored);
+  return arr.map(ccRecipientFromStored).filter((c) => c.id || c.email || c.name);
 }
 
 function toCreatePayload(input: CreateNoteInput): CreateNotePayload {
@@ -107,19 +122,37 @@ function toCreatePayload(input: CreateNoteInput): CreateNotePayload {
   };
 }
 
-export function toNoteResponse(doc: NoteLean): NoteResponse {
+function noteRowToLean(row: NoteRow): NoteLean {
   return {
-    id: doc._id,
-    title: doc.title,
-    description: doc.description,
-    type: doc.type,
-    toDriverIds: mapStoredToDriverRecipients(doc.toDriverIds),
-    ccEmails: mapStoredToCcRecipients(doc.ccEmails),
-    subject: doc.subject,
-    message: doc.message,
-    gifUrl: doc.gifUrl,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt,
+    _id: row.id,
+    title: row.title,
+    description: row.description,
+    type: row.type,
+    toDriverIds: parseJsonArrayField(row.to_driver_ids),
+    ccEmails: parseJsonArrayField(row.cc_emails),
+    subject: row.subject,
+    message: row.message,
+    gifUrl: row.gif_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function toNoteResponse(doc: NoteLean | NoteRow): NoteResponse {
+  const lean: NoteLean = "id" in doc && typeof doc.id === "number" ? noteRowToLean(doc) : doc;
+
+  return {
+    id: lean._id,
+    title: lean.title,
+    description: lean.description,
+    type: lean.type,
+    toDriverIds: mapStoredToDriverRecipients(lean.toDriverIds),
+    ccEmails: mapStoredToCcRecipients(lean.ccEmails),
+    subject: lean.subject,
+    message: lean.message,
+    gifUrl: lean.gifUrl,
+    createdAt: lean.createdAt,
+    updatedAt: lean.updatedAt,
   };
 }
 

@@ -1,5 +1,6 @@
 import { connectDB } from "../config/db";
-import type { NoteLean } from "./types";
+import { initializeDatabase } from "../config/dbInit";
+import type { NoteLean, NoteRow } from "./types";
 import {
   getDashboardData,
   listNotes,
@@ -7,20 +8,28 @@ import {
   toNoteResponse,
 } from "./service";
 
-export const getDashboard = async (req:any, res:any) => {
+export const getDashboard = async (req: any, res: any) => {
   const data = await getDashboardData();
 
   return res.status(200).json(data);
 };
 
-export const getUsers = async (req:any, res:any) => {
-  await connectDB();
-  return res.status(200).json({
-    message: "Users fetched successfully Eegds/. ",
-  });
+export const getUsers = async (req: any, res: any) => {
+  try {
+    await connectDB();
+    return res.status(200).json({
+      message: "Users fetched successfully Eegds/. ",
+    });
+  } catch (err) {
+    console.error("getUsers error:", err);
+    return res.status(500).json({
+      message: "Database connection failed",
+      error: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
 };
 
-export const createNote = async (req:any, res:any) => {
+export const createNote = async (req: any, res: any) => {
   const { title, description, type, toDriverIds, ccEmails, subject, message, gifUrl } =
     req.body ?? {};
 
@@ -39,7 +48,7 @@ export const createNote = async (req:any, res:any) => {
 
     return res.status(201).json({
       message: "Note created successfully",
-      note: toNoteResponse(note.toObject() as NoteLean),
+      note: toNoteResponse(note as NoteRow),
     });
   } catch (err) {
     console.error("createNote error:", err);
@@ -50,11 +59,22 @@ export const createNote = async (req:any, res:any) => {
   }
 };
 
-export const getNotes = async (req:any, res:any) => {
+export const getNotes = async (req: any, res: any) => {
   try {
+    console.log("[getNotes] start: connecting to DB");
     await connectDB();
+    console.log("[getNotes] connectDB: ok");
+
+    console.log("[getNotes] initializeDatabase: start (ensure tables)");
+    await initializeDatabase();
+    console.log("[getNotes] initializeDatabase: ok");
+
+    console.log("[getNotes] listNotes: start");
     const rows = await listNotes();
-    const notes = rows.map((row) => toNoteResponse(row as NoteLean));
+    console.log("[getNotes] listNotes: ok", { rowCount: rows.length });
+
+    const notes = rows.map((row) => toNoteResponse(row as NoteLean | NoteRow));
+    console.log("[getNotes] mapped to response notes", { count: notes.length });
 
     return res.status(200).json({
       message: "Notes fetched successfully",

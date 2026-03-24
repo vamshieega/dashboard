@@ -77,17 +77,31 @@ function ccRecipientFromStored(item) {
     }
     return { id: "", email: "", name: "" };
 }
-function mapStoredToDriverRecipients(stored) {
-    if (!Array.isArray(stored))
+function parseJsonArrayField(raw) {
+    if (raw == null)
         return [];
-    return stored
+    if (Array.isArray(raw))
+        return raw;
+    if (typeof raw === "string") {
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        }
+        catch {
+            return [];
+        }
+    }
+    return [];
+}
+function mapStoredToDriverRecipients(stored) {
+    const arr = parseJsonArrayField(stored);
+    return arr
         .map(driverRecipientFromStored)
         .filter((d) => d.driverId || d.email || d.name);
 }
 function mapStoredToCcRecipients(stored) {
-    if (!Array.isArray(stored))
-        return [];
-    return stored.map(ccRecipientFromStored).filter((c) => c.id || c.email || c.name);
+    const arr = parseJsonArrayField(stored);
+    return arr.map(ccRecipientFromStored).filter((c) => c.id || c.email || c.name);
 }
 function toCreatePayload(input) {
     return {
@@ -101,19 +115,35 @@ function toCreatePayload(input) {
         gifUrl: input.gifUrl,
     };
 }
-function toNoteResponse(doc) {
+function noteRowToLean(row) {
     return {
-        id: doc._id,
-        title: doc.title,
-        description: doc.description,
-        type: doc.type,
-        toDriverIds: mapStoredToDriverRecipients(doc.toDriverIds),
-        ccEmails: mapStoredToCcRecipients(doc.ccEmails),
-        subject: doc.subject,
-        message: doc.message,
-        gifUrl: doc.gifUrl,
-        createdAt: doc.createdAt,
-        updatedAt: doc.updatedAt,
+        _id: row.id,
+        title: row.title,
+        description: row.description,
+        type: row.type,
+        toDriverIds: parseJsonArrayField(row.to_driver_ids),
+        ccEmails: parseJsonArrayField(row.cc_emails),
+        subject: row.subject,
+        message: row.message,
+        gifUrl: row.gif_url,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+    };
+}
+function toNoteResponse(doc) {
+    const lean = "id" in doc && typeof doc.id === "number" ? noteRowToLean(doc) : doc;
+    return {
+        id: lean._id,
+        title: lean.title,
+        description: lean.description,
+        type: lean.type,
+        toDriverIds: mapStoredToDriverRecipients(lean.toDriverIds),
+        ccEmails: mapStoredToCcRecipients(lean.ccEmails),
+        subject: lean.subject,
+        message: lean.message,
+        gifUrl: lean.gifUrl,
+        createdAt: lean.createdAt,
+        updatedAt: lean.updatedAt,
     };
 }
 const saveNote = async (input) => {

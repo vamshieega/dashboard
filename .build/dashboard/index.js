@@ -16,6 +16,12 @@ exports.dashboard = void 0;
 // export const dashboard = async () => {
 //   return getDashboard({}, {});
 // };
+const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+// Load .env before any route/controller code runs (serverless-offline / local).
+dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), ".env") });
+// TODO: remove after verifying env loading in local dev
+console.log("DB_HOST:", process.env.Aurora_DB_HOST || process.env.DB_HOST);
 const express_1 = __importDefault(require("express"));
 const serverless_http_1 = __importDefault(require("serverless-http"));
 const routesV4_1 = __importDefault(require("./routesV4"));
