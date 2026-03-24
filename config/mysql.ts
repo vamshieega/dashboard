@@ -58,13 +58,13 @@ export async function getConnection(): Promise<mysql.Connection> {
     "Aurora_DB_PASSWORD",
     "AURORA_DB_PASSWORD"
   );
-  const database = requiredEnvFirst("DB_NAME", "Aurora_DB_NAME", "AURORA_DB_NAME");
+  // const database = requiredEnvFirst("DB_NAME", "Aurora_DB_NAME", "AURORA_DB_NAME");
 
   const resolvedPort = Number.isFinite(port) ? port : 3306;
   console.log("[mysql] Resolved connection settings:", {
     host,
     user,
-    database,
+    // database,
     port: resolvedPort,
   });
 
@@ -73,7 +73,7 @@ export async function getConnection(): Promise<mysql.Connection> {
     host,
     user,
     password,
-    database,
+    // database,
     port: resolvedPort,
     // ssl: process.env.DB_SSL === "true" ? {} : undefined, // enable if Aurora requires TLS
   });
