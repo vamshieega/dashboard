@@ -3,6 +3,8 @@ export type DriverRecipient = {
   driverId: string;
   email: string;
   name: string;
+  groupName: string;
+  groupId: string;
 };
 
 /** API / stored shape for CC. Legacy docs may use plain strings (email only). */

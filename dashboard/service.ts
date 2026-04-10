@@ -27,7 +27,7 @@ function normalizeToDriverIdsInput(raw: unknown): DriverRecipient[] {
   const out: DriverRecipient[] = [];
   for (const item of raw) {
     if (typeof item === "string") {
-      if (item) out.push({ driverId: item, email: "", name: "" });
+      if (item) out.push({ driverId: item, email: "", name: "", groupName: "", groupId: "" });
       continue;
     }
     if (isRecord(item) && item.driverId != null) {
@@ -35,6 +35,8 @@ function normalizeToDriverIdsInput(raw: unknown): DriverRecipient[] {
         driverId: String(item.driverId),
         email: item.email != null ? String(item.email) : "",
         name: item.name != null ? String(item.name) : "",
+        groupName: item.groupName != null ? String(item.groupName) : "",
+        groupId: item.groupId != null ? String(item.groupId) : "",
       });
     }
   }
@@ -60,15 +62,17 @@ function normalizeCcEmailsInput(raw: unknown): CcRecipient[] {
 }
 
 function driverRecipientFromStored(item: unknown): DriverRecipient {
-  if (typeof item === "string") return { driverId: item, email: "", name: "" };
+  if (typeof item === "string") return { driverId: item, email: "", name: "", groupName: "", groupId: "" };
   if (isRecord(item) && item.driverId != null) {
     return {
       driverId: String(item.driverId),
       email: item.email != null ? String(item.email) : "",
       name: item.name != null ? String(item.name) : "",
+      groupName: item.groupName != null ? String(item.groupName) : "",
+      groupId: item.groupId != null ? String(item.groupId) : "",
     };
   }
-  return { driverId: "", email: "", name: "" };
+  return { driverId: "", email: "", name: "", groupName: "", groupId: "" };
 }
 
 function ccRecipientFromStored(item: unknown): CcRecipient {
@@ -163,3 +167,5 @@ export const saveNote = async (input: CreateNoteInput) => {
 export const listNotes = async () => {
   return findAllNotesSorted();
 };
+
+//Business Logic
