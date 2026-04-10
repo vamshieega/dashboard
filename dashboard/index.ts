@@ -26,11 +26,21 @@ console.log(
   process.env.Aurora_DB_HOST || process.env.DB_HOST
 );
 
+import cors from "cors";
 import express from "express";
 import serverless from "serverless-http";
 import routesV4 from "./routesV4";
 
 const app = express();
+
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  })
+);
 
 // JSON body only for methods that carry bodies. Global express.json() + serverless-http
 // can throw "request size did not match content length" on GET because offline/Lambda
