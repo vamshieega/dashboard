@@ -22,10 +22,17 @@ const path_1 = __importDefault(require("path"));
 dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), ".env") });
 // TODO: remove after verifying env loading in local dev
 console.log("DB_HOST:", process.env.Aurora_DB_HOST || process.env.DB_HOST);
+const cors_1 = __importDefault(require("cors"));
 const express_1 = __importDefault(require("express"));
 const serverless_http_1 = __importDefault(require("serverless-http"));
 const routesV4_1 = __importDefault(require("./routesV4"));
 const app = (0, express_1.default)();
+app.use((0, cors_1.default)({
+    origin: true,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+}));
 // JSON body only for methods that carry bodies. Global express.json() + serverless-http
 // can throw "request size did not match content length" on GET because offline/Lambda
 // may set Content-Length in a way that doesn't match the synthesized stream.

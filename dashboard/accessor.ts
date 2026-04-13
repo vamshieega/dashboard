@@ -87,3 +87,24 @@ export async function findAllNotesSorted(): Promise<NoteRow[]> {
     throw err;
   }
 }
+
+/** Returns number of rows deleted (0 if id did not exist). */
+export async function deleteNoteById(id: number): Promise<number> {
+  const conn = await getConnection();
+
+  try {
+    const [result] = await conn.execute<ResultSetHeader>(
+      `DELETE FROM notes WHERE id = ?`,
+      [id]
+    );
+    return result.affectedRows;
+  } catch (err) {
+    console.error("deleteNoteById:", err);
+    throw err;
+  }
+}
+
+
+//Database
+
+//Query, create different file

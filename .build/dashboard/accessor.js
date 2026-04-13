@@ -4,6 +4,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.insertNote = insertNote;
 exports.findAllNotesSorted = findAllNotesSorted;
+exports.deleteNoteById = deleteNoteById;
 const mysql_1 = require("../config/mysql");
 async function insertNote(payload) {
     const conn = await (0, mysql_1.getConnection)();
@@ -48,4 +49,18 @@ async function findAllNotesSorted() {
         throw err;
     }
 }
+/** Returns number of rows deleted (0 if id did not exist). */
+async function deleteNoteById(id) {
+    const conn = await (0, mysql_1.getConnection)();
+    try {
+        const [result] = await conn.execute(`DELETE FROM notes WHERE id = ?`, [id]);
+        return result.affectedRows;
+    }
+    catch (err) {
+        console.error("deleteNoteById:", err);
+        throw err;
+    }
+}
+//Database
+//Query, create different file
 //# sourceMappingURL=accessor.js.map

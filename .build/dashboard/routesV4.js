@@ -19,6 +19,9 @@ exports.default = () => {
     router.post("/notes", 
     // authorizeUser,
     controller_1.createNote);
+    router.delete("/notes/:id", 
+    // authorizeUser,
+    controller_1.deleteNote);
     return router;
 };
 //# sourceMappingURL=routesV4.js.map

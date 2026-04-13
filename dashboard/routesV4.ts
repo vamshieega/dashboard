@@ -1,6 +1,6 @@
 import { Router } from "express";
 import Middleware from "./middleware";
-import { createNote, getDashboard, getNotes, getUsers } from "./controller";
+import { createNote, deleteNote, getDashboard, getNotes, getUsers } from "./controller";
 
 export default () => {
   const router = Router();
@@ -31,6 +31,12 @@ export default () => {
     "/notes",
     // authorizeUser,
     createNote
+  );
+
+  router.delete(
+    "/notes/:id",
+    // authorizeUser,
+    deleteNote
   );
   return router;
 };

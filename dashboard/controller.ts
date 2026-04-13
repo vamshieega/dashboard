@@ -2,6 +2,7 @@ import { connectDB } from "../config/db";
 import { initializeDatabase } from "../config/dbInit";
 import type { NoteLean, NoteRow } from "./types";
 import {
+  deleteNoteById,
   getDashboardData,
   listNotes,
   saveNote,
@@ -102,6 +103,29 @@ export const getNotes = async (req: any, res: any) => {
       "Access-Control-Allow-Origin": "http://localhost:3000",
     }).json({
       message: "Failed to fetch notes",
+      error: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+};
+
+
+export const deleteNote = async (req: any, res: any) => {
+  const { id } = req.params;
+  try {
+    await connectDB();
+    await initializeDatabase();
+    const result = await deleteNoteById(id);
+    if (result.invalidId) {
+      return res.status(400).json({ message: "Invalid note id" });
+    }
+    if (!result.deleted) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+    return res.status(200).json({ message: "Note deleted successfully" });
+  } catch (err) {
+    console.error("deleteNote error:", err);
+    return res.status(500).json({
+      message: "Failed to delete note",
       error: err instanceof Error ? err.message : "Unknown error",
     });
   }

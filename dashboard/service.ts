@@ -1,4 +1,8 @@
-import { findAllNotesSorted, insertNote } from "./accessor";
+import {
+  deleteNoteById as deleteNoteRowById,
+  findAllNotesSorted,
+  insertNote,
+} from "./accessor";
 import type {
   CreateNoteInput,
   CreateNotePayload,
@@ -167,5 +171,16 @@ export const saveNote = async (input: CreateNoteInput) => {
 export const listNotes = async () => {
   return findAllNotesSorted();
 };
+
+export async function deleteNoteById(
+  id: string
+): Promise<{ deleted: boolean; invalidId: boolean }> {
+  const n = Number(id);
+  if (!Number.isInteger(n) || n < 1) {
+    return { deleted: false, invalidId: true };
+  }
+  const affected = await deleteNoteRowById(n);
+  return { deleted: affected > 0, invalidId: false };
+}
 
 //Business Logic

@@ -20,3 +20,9 @@ events:
       method: GET
       path: /dashboard/notes
       cors: true
+  - httpApi:
+      method: DELETE
+      path: /dashboard/notes/{id}
+      cors: true
+
+ 

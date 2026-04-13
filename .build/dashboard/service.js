@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listNotes = exports.saveNote = exports.getDashboardData = void 0;
 exports.toNoteResponse = toNoteResponse;
+exports.deleteNoteById = deleteNoteById;
 const accessor_1 = require("./accessor");
 const getDashboardData = async () => {
     return {
@@ -20,7 +21,7 @@ function normalizeToDriverIdsInput(raw) {
     for (const item of raw) {
         if (typeof item === "string") {
             if (item)
-                out.push({ driverId: item, email: "", name: "" });
+                out.push({ driverId: item, email: "", name: "", groupName: "", groupId: "" });
             continue;
         }
         if (isRecord(item) && item.driverId != null) {
@@ -28,6 +29,8 @@ function normalizeToDriverIdsInput(raw) {
                 driverId: String(item.driverId),
                 email: item.email != null ? String(item.email) : "",
                 name: item.name != null ? String(item.name) : "",
+                groupName: item.groupName != null ? String(item.groupName) : "",
+                groupId: item.groupId != null ? String(item.groupId) : "",
             });
         }
     }
@@ -55,15 +58,17 @@ function normalizeCcEmailsInput(raw) {
 }
 function driverRecipientFromStored(item) {
     if (typeof item === "string")
-        return { driverId: item, email: "", name: "" };
+        return { driverId: item, email: "", name: "", groupName: "", groupId: "" };
     if (isRecord(item) && item.driverId != null) {
         return {
             driverId: String(item.driverId),
             email: item.email != null ? String(item.email) : "",
             name: item.name != null ? String(item.name) : "",
+            groupName: item.groupName != null ? String(item.groupName) : "",
+            groupId: item.groupId != null ? String(item.groupId) : "",
         };
     }
-    return { driverId: "", email: "", name: "" };
+    return { driverId: "", email: "", name: "", groupName: "", groupId: "" };
 }
 function ccRecipientFromStored(item) {
     if (typeof item === "string")
@@ -154,4 +159,13 @@ const listNotes = async () => {
     return (0, accessor_1.findAllNotesSorted)();
 };
 exports.listNotes = listNotes;
+async function deleteNoteById(id) {
+    const n = Number(id);
+    if (!Number.isInteger(n) || n < 1) {
+        return { deleted: false, invalidId: true };
+    }
+    const affected = await (0, accessor_1.deleteNoteById)(n);
+    return { deleted: affected > 0, invalidId: false };
+}
+//Business Logic
 //# sourceMappingURL=service.js.map
