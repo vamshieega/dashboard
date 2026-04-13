@@ -1,16 +1,43 @@
--- Notes table (MongoDB "Note" collection → Aurora MySQL)
--- Arrays stored as JSON columns.
+-- Notes (Aurora MySQL): normalized recipients and CC (no JSON on notes).
 
 CREATE TABLE IF NOT EXISTS notes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(512) NULL,
   description TEXT NULL,
   type VARCHAR(128) NULL,
-  to_driver_ids JSON NULL,
-  cc_emails JSON NULL,
   subject VARCHAR(512) NULL,
   message TEXT NULL,
   gif_url VARCHAR(2048) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS note_recipients (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  note_id INT NOT NULL,
+  driver_id VARCHAR(255) NOT NULL,
+  email VARCHAR(512) NOT NULL DEFAULT '',
+  name VARCHAR(512) NOT NULL DEFAULT '',
+  group_name VARCHAR(512) NOT NULL DEFAULT '',
+  group_id VARCHAR(255) NOT NULL DEFAULT '',
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+  CONSTRAINT fk_note_recipients_note
+    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_note_recipient_driver (note_id, driver_id),
+  KEY idx_note_recipients_note (note_id),
+  KEY idx_note_recipients_driver (driver_id),
+  KEY idx_note_recipients_group (group_id)
+);
+
+CREATE TABLE IF NOT EXISTS note_cc (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  note_id INT NOT NULL,
+  cc_ref_id VARCHAR(255) NOT NULL DEFAULT '',
+  email VARCHAR(512) NOT NULL DEFAULT '',
+  name VARCHAR(512) NOT NULL DEFAULT '',
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+  CONSTRAINT fk_note_cc_note
+    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_note_cc_order (note_id, sort_order),
+  KEY idx_note_cc_note (note_id)
 );

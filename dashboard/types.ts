@@ -38,19 +38,39 @@ export type CreateNotePayload = {
   gifUrl?: string;
 };
 
-/** Aurora MySQL row shape (snake_case columns). */
+/** Aurora MySQL row for notes (no JSON blobs). */
 export type NoteRow = {
   id: number;
   title: string | null;
   description: string | null;
   type: string | null;
-  to_driver_ids: unknown;
-  cc_emails: unknown;
   subject: string | null;
   message: string | null;
   gif_url: string | null;
   created_at: Date;
   updated_at: Date;
+};
+
+/** Child row for note_recipients. */
+export type NoteRecipientRow = {
+  id: number;
+  note_id: number;
+  driver_id: string;
+  email: string;
+  name: string;
+  group_name: string;
+  group_id: string;
+  sort_order: number;
+};
+
+/** Child row for note_cc. */
+export type NoteCcRow = {
+  id: number;
+  note_id: number;
+  cc_ref_id: string;
+  email: string;
+  name: string;
+  sort_order: number;
 };
 
 /** Lean note document from MongoDB (legacy; for mapping to API). */
@@ -68,7 +88,7 @@ export type NoteLean = {
   updatedAt?: Date;
 };
 
-/** Single note in API responses. */
+/** Single note in API responses (unchanged contract). */
 export type NoteResponse = {
   id: unknown;
   title?: string | null;
@@ -81,4 +101,11 @@ export type NoteResponse = {
   gifUrl?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+};
+
+/** In-memory bundle for mapping a note to API shape. */
+export type NoteWithRelations = {
+  note: NoteRow;
+  recipients: DriverRecipient[];
+  cc: CcRecipient[];
 };

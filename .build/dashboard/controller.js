@@ -72,10 +72,10 @@ const getNotes = async (req, res) => {
         console.log("[getNotes] initializeDatabase: start (ensure tables)");
         await (0, dbInit_1.initializeDatabase)();
         console.log("[getNotes] initializeDatabase: ok");
-        console.log("[getNotes] listNotes: start");
-        const rows = await (0, service_1.listNotes)();
-        console.log("[getNotes] listNotes: ok", { rowCount: rows.length });
-        const notes = rows.map((row) => (0, service_1.toNoteResponse)(row));
+        console.log("[getNotes] listNotesWithRelations: start");
+        const bundles = await (0, service_1.listNotesWithRelations)();
+        console.log("[getNotes] listNotesWithRelations: ok", { rowCount: bundles.length });
+        const notes = bundles.map((b) => (0, service_1.toNoteResponse)(b));
         console.log("[getNotes] mapped to response notes", { count: notes.length });
         return res.status(200)
             .set({

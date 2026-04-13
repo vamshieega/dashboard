@@ -1,6 +1,11 @@
 import {
   deleteNoteById as deleteNoteRowById,
   findAllNotesSorted,
+  findCcByNoteIds,
+  findNotesByIdsSorted,
+  findNoteIdsByDriverId,
+  findNoteIdsByGroupId,
+  findRecipientsByNoteIds,
   insertNote,
 } from "./accessor";
 import type {
@@ -8,9 +13,12 @@ import type {
   CreateNotePayload,
   CcRecipient,
   DriverRecipient,
+  NoteCcRow,
   NoteLean,
+  NoteRecipientRow,
   NoteResponse,
   NoteRow,
+  NoteWithRelations,
 } from "./types";
 
 export const getDashboardData = async () => {
@@ -65,6 +73,26 @@ function normalizeCcEmailsInput(raw: unknown): CcRecipient[] {
   return out;
 }
 
+/** Same driverId in one payload: keep last (stable for updates from clients). */
+function dedupeDriverRecipientsLastWins(rows: DriverRecipient[]): DriverRecipient[] {
+  const map = new Map<string, DriverRecipient>();
+  for (const r of rows) {
+    if (!r.driverId) continue;
+    map.set(r.driverId, r);
+  }
+  return [...map.values()];
+}
+
+/** Avoid duplicate CC slots: same email (when non-empty) keeps last. */
+function dedupeCcRecipientsLastWins(rows: CcRecipient[]): CcRecipient[] {
+  const map = new Map<string, CcRecipient>();
+  for (const r of rows) {
+    const key = r.email.trim() !== "" ? r.email : `${r.id}|${r.name}`;
+    map.set(key, r);
+  }
+  return [...map.values()];
+}
+
 function driverRecipientFromStored(item: unknown): DriverRecipient {
   if (typeof item === "string") return { driverId: item, email: "", name: "", groupName: "", groupId: "" };
   if (isRecord(item) && item.driverId != null) {
@@ -117,27 +145,58 @@ function mapStoredToCcRecipients(stored: unknown): CcRecipient[] {
   return arr.map(ccRecipientFromStored).filter((c) => c.id || c.email || c.name);
 }
 
+function recipientRowToApi(r: NoteRecipientRow): DriverRecipient {
+  return {
+    driverId: r.driver_id,
+    email: r.email,
+    name: r.name,
+    groupName: r.group_name,
+    groupId: r.group_id,
+  };
+}
+
+function ccRowToApi(r: NoteCcRow): CcRecipient {
+  return {
+    id: r.cc_ref_id,
+    email: r.email,
+    name: r.name,
+  };
+}
+
+function isNoteWithRelations(doc: unknown): doc is NoteWithRelations {
+  return (
+    isRecord(doc) &&
+    "note" in doc &&
+    "recipients" in doc &&
+    "cc" in doc &&
+    isRecord((doc as NoteWithRelations).note) &&
+    typeof (doc as NoteWithRelations).note.id === "number"
+  );
+}
+
 function toCreatePayload(input: CreateNoteInput): CreateNotePayload {
+  const toDriverIds = dedupeDriverRecipientsLastWins(normalizeToDriverIdsInput(input.toDriverIds));
+  const ccEmails = dedupeCcRecipientsLastWins(normalizeCcEmailsInput(input.ccEmails));
   return {
     title: input.title,
     description: input.description,
     type: input.type,
-    toDriverIds: normalizeToDriverIdsInput(input.toDriverIds),
-    ccEmails: normalizeCcEmailsInput(input.ccEmails),
+    toDriverIds,
+    ccEmails,
     subject: input.subject,
     message: input.message,
     gifUrl: input.gifUrl,
   };
 }
 
-function noteRowToLean(row: NoteRow): NoteLean {
+function noteRowToLeanLegacy(row: NoteRow): NoteLean {
   return {
     _id: row.id,
     title: row.title,
     description: row.description,
     type: row.type,
-    toDriverIds: parseJsonArrayField(row.to_driver_ids),
-    ccEmails: parseJsonArrayField(row.cc_emails),
+    toDriverIds: [],
+    ccEmails: [],
     subject: row.subject,
     message: row.message,
     gifUrl: row.gif_url,
@@ -146,16 +205,37 @@ function noteRowToLean(row: NoteRow): NoteLean {
   };
 }
 
-export function toNoteResponse(doc: NoteLean | NoteRow): NoteResponse {
-  const lean: NoteLean = "id" in doc && typeof doc.id === "number" ? noteRowToLean(doc) : doc;
+/** Maps DB rows or legacy lean docs to API shape. */
+export function toNoteResponse(doc: NoteLean | NoteRow | NoteWithRelations): NoteResponse {
+  if (isNoteWithRelations(doc)) {
+    const { note, recipients, cc } = doc;
+    return {
+      id: note.id,
+      title: note.title,
+      description: note.description,
+      type: note.type,
+      toDriverIds: recipients,
+      ccEmails: cc,
+      subject: note.subject,
+      message: note.message,
+      gifUrl: note.gif_url,
+      createdAt: note.created_at,
+      updatedAt: note.updated_at,
+    };
+  }
+
+  const lean: NoteLean =
+    "id" in doc && typeof (doc as NoteRow).id === "number"
+      ? noteRowToLeanLegacy(doc as NoteRow)
+      : (doc as NoteLean);
 
   return {
     id: lean._id,
     title: lean.title,
     description: lean.description,
     type: lean.type,
-    toDriverIds: mapStoredToDriverRecipients(lean.toDriverIds),
-    ccEmails: mapStoredToCcRecipients(lean.ccEmails),
+    toDriverIds: mapStoredToDriverRecipients(lean.toDriverIds as unknown),
+    ccEmails: mapStoredToCcRecipients(lean.ccEmails as unknown),
     subject: lean.subject,
     message: lean.message,
     gifUrl: lean.gifUrl,
@@ -164,13 +244,60 @@ export function toNoteResponse(doc: NoteLean | NoteRow): NoteResponse {
   };
 }
 
+async function hydrateNoteRows(rows: NoteRow[]): Promise<NoteWithRelations[]> {
+  const ids = rows.map((r) => r.id);
+  const [recMap, ccMap] = await Promise.all([
+    findRecipientsByNoteIds(ids),
+    findCcByNoteIds(ids),
+  ]);
+
+  return rows.map((note) => {
+    const recRows = recMap.get(note.id) ?? [];
+    const ccRows = ccMap.get(note.id) ?? [];
+    return {
+      note,
+      recipients: recRows.map(recipientRowToApi),
+      cc: ccRows.map(ccRowToApi),
+    };
+  });
+}
+
 export const saveNote = async (input: CreateNoteInput) => {
-  return insertNote(toCreatePayload(input));
+  const row = await insertNote(toCreatePayload(input));
+  const [recMap, ccMap] = await Promise.all([
+    findRecipientsByNoteIds([row.id]),
+    findCcByNoteIds([row.id]),
+  ]);
+  const recRows = recMap.get(row.id) ?? [];
+  const ccRows = ccMap.get(row.id) ?? [];
+  return {
+    note: row,
+    recipients: recRows.map(recipientRowToApi),
+    cc: ccRows.map(ccRowToApi),
+  } satisfies NoteWithRelations;
 };
 
 export const listNotes = async () => {
   return findAllNotesSorted();
 };
+
+/** Full API-shaped list with recipients and CC (relational). */
+export const listNotesWithRelations = async (): Promise<NoteWithRelations[]> => {
+  const rows = await findAllNotesSorted();
+  return hydrateNoteRows(rows);
+};
+
+export async function getNotesByDriverId(driverId: string): Promise<NoteWithRelations[]> {
+  const noteIds = await findNoteIdsByDriverId(driverId);
+  const rows = await findNotesByIdsSorted(noteIds);
+  return hydrateNoteRows(rows);
+}
+
+export async function getNotesByGroupId(groupId: string): Promise<NoteWithRelations[]> {
+  const noteIds = await findNoteIdsByGroupId(groupId);
+  const rows = await findNotesByIdsSorted(noteIds);
+  return hydrateNoteRows(rows);
+}
 
 export async function deleteNoteById(
   id: string
@@ -182,5 +309,3 @@ export async function deleteNoteById(
   const affected = await deleteNoteRowById(n);
   return { deleted: affected > 0, invalidId: false };
 }
-
-//Business Logic

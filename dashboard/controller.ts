@@ -1,10 +1,9 @@
 import { connectDB } from "../config/db";
 import { initializeDatabase } from "../config/dbInit";
-import type { NoteLean, NoteRow } from "./types";
 import {
   deleteNoteById,
   getDashboardData,
-  listNotes,
+  listNotesWithRelations,
   saveNote,
   toNoteResponse,
 } from "./service";
@@ -57,7 +56,7 @@ export const createNote = async (req: any, res: any) => {
       "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     }).json({
       message: "Note created successfully",
-      note: toNoteResponse(note as NoteRow),
+      note: toNoteResponse(note),
     });
   } catch (err) {
     console.error("createNote error:", err);
@@ -81,11 +80,11 @@ export const getNotes = async (req: any, res: any) => {
     await initializeDatabase();
     console.log("[getNotes] initializeDatabase: ok");
 
-    console.log("[getNotes] listNotes: start");
-    const rows = await listNotes();
-    console.log("[getNotes] listNotes: ok", { rowCount: rows.length });
+    console.log("[getNotes] listNotesWithRelations: start");
+    const bundles = await listNotesWithRelations();
+    console.log("[getNotes] listNotesWithRelations: ok", { rowCount: bundles.length });
 
-    const notes = rows.map((row) => toNoteResponse(row as NoteLean | NoteRow));
+    const notes = bundles.map((b) => toNoteResponse(b));
     console.log("[getNotes] mapped to response notes", { count: notes.length });
 
     return res.status(200)
